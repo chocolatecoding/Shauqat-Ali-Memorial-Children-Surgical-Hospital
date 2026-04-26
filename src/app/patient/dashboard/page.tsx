@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
@@ -9,23 +9,19 @@ import {
   Sparkles, 
   Calendar, 
   CheckCircle,
-  AlertCircle,
   Loader2,
-  Activity,
   LogOut,
   User,
-  Menu,
-  X,
+  Search,
+  Phone,
   Heart,
   Clock,
-  Search,
-  Home,
-  Settings,
-  HelpCircle,
-  Phone,
-  Bell,
-  Microscope
+  Activity
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 // Mock data
 const mockReports = [
@@ -35,7 +31,6 @@ const mockReports = [
     report_date: "2026-04-10",
     has_summary: true,
     report_type: "Hematology",
-    doctor: "Dr. Sarah Johnson",
   },
   {
     id: 2,
@@ -43,7 +38,6 @@ const mockReports = [
     report_date: "2026-04-05",
     has_summary: false,
     report_type: "Biochemistry",
-    doctor: "Dr. Michael Chen",
   },
   {
     id: 3,
@@ -51,7 +45,6 @@ const mockReports = [
     report_date: "2026-03-28",
     has_summary: true,
     report_type: "Biochemistry",
-    doctor: "Dr. Sarah Johnson",
   },
   {
     id: 4,
@@ -59,22 +52,20 @@ const mockReports = [
     report_date: "2026-03-20",
     has_summary: false,
     report_type: "Endocrinology",
-    doctor: "Dr. Emily Watson",
   },
 ];
 
 const mockPatient = {
-  name: "Test Patient",
+  name: "Sarah Ahmed",
   patient_id: "PAT1234567890",
+  email: "sarah@example.com",
 };
 
 export default function PatientDashboard() {
   const router = useRouter();
   const [reports, setReports] = useState(mockReports);
   const [generatingId, setGeneratingId] = useState<number | null>(null);
-  const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
 
   const generateSummary = async (reportId: number) => {
@@ -83,9 +74,7 @@ export default function PatientDashboard() {
       setReports(prev => prev.map(report => 
         report.id === reportId ? { ...report, has_summary: true } : report
       ));
-      setMessage({ type: "success", text: "✨ AI Summary generated successfully!" });
       setGeneratingId(null);
-      setTimeout(() => setMessage(null), 3000);
     }, 2000);
   };
 
@@ -99,7 +88,7 @@ export default function PatientDashboard() {
     if (selectedFilter === "pending") return !report.has_summary;
     return true;
   }).filter(report => 
-    report.report_title.toLowerCase().includes(searchQuery.toLowerCase())
+    report.report_title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const stats = {
@@ -109,241 +98,226 @@ export default function PatientDashboard() {
   };
 
   return (
-    <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh' }}>
-      {/* Mobile Menu Overlay */}
-      {isMenuOpen && (
-        <div
-          onClick={() => setIsMenuOpen(false)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            zIndex: 40,
-          }}
-        />
-      )}
-
-      {/* Sidebar */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        bottom: 0,
-        width: '280px',
-        backgroundColor: 'white',
-        transform: isMenuOpen ? 'translateX(0)' : 'translateX(-100%)',
-        transition: 'transform 0.3s ease',
-        zIndex: 50,
-        boxShadow: '2px 0 8px rgba(0,0,0,0.1)',
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
-        <div style={{ padding: '20px', borderBottom: '1px solid #e5e7eb' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '32px', height: '32px', backgroundColor: '#dc2626', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>SRS</span>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">S</span>
               </div>
-              <span style={{ fontWeight: '600', color: '#1f2937' }}>Smart Report</span>
+              <span className="font-semibold text-gray-800">Smart Report System</span>
+              <span className="text-xs text-gray-400 ml-2 hidden sm:inline">| Patient Portal</span>
             </div>
-            <button onClick={() => setIsMenuOpen(false)} style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer' }}>
-              <X size={20} />
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-600 hidden sm:inline">Welcome, {mockPatient.name.split(' ')[0]}</span>
+              <button
+                onClick={() => router.push("/")}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Section */}
+        <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-2xl p-6 md:p-8 mb-8 text-white">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold mb-2">
+                Welcome back, {mockPatient.name.split(' ')[0]}!
+              </h1>
+              <p className="text-red-100 text-sm">Patient ID: {mockPatient.patient_id}</p>
+            </div>
+            <div className="flex gap-3">
+              <div className="bg-white/20 rounded-xl px-4 py-2 text-center">
+                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-xs text-red-100">Reports</p>
+              </div>
+              <div className="bg-white/20 rounded-xl px-4 py-2 text-center">
+                <p className="text-2xl font-bold">{stats.summarized}</p>
+                <p className="text-xs text-red-100">AI Ready</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <FileText className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                <p className="text-sm text-gray-500">Total Reports</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{stats.summarized}</p>
+                <p className="text-sm text-gray-500">AI Summarized</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                <Clock className="w-6 h-6 text-yellow-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
+                <p className="text-sm text-gray-500">Pending Summary</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search and Filter */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search reports..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSelectedFilter("all")}
+              className={`px-4 py-2 text-sm rounded-lg transition ${selectedFilter === 'all' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setSelectedFilter("summarized")}
+              className={`px-4 py-2 text-sm rounded-lg transition flex items-center gap-1 ${selectedFilter === 'summarized' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            >
+              <Sparkles className="w-3 h-3" /> Summarized
+            </button>
+            <button
+              onClick={() => setSelectedFilter("pending")}
+              className={`px-4 py-2 text-sm rounded-lg transition flex items-center gap-1 ${selectedFilter === 'pending' ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            >
+              <Clock className="w-3 h-3" /> Pending
             </button>
           </div>
         </div>
-        
-        <nav style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <Link href="/patient/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '8px', textDecoration: 'none' }}>
-            <Home size={18} /> <span>Dashboard</span>
-          </Link>
-          <Link href="/patient/reports" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', color: '#6b7280', borderRadius: '8px', textDecoration: 'none' }}>
-            <FileText size={18} /> <span>My Reports</span>
-          </Link>
-          <Link href="/patient/settings" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', color: '#6b7280', borderRadius: '8px', textDecoration: 'none' }}>
-            <Settings size={18} /> <span>Settings</span>
-          </Link>
-          <Link href="/patient/help" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', color: '#6b7280', borderRadius: '8px', textDecoration: 'none' }}>
-            <HelpCircle size={18} /> <span>Help</span>
-          </Link>
-        </nav>
-        
-        <div style={{ padding: '16px', borderTop: '1px solid #e5e7eb' }}>
-          <div style={{ backgroundColor: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <Phone size={14} color="#dc2626" />
-              <span style={{ fontSize: '12px', fontWeight: '500' }}>Emergency</span>
+
+        {/* Reports List */}
+        {filteredReports.length > 0 ? (
+          <div className="space-y-4">
+            {filteredReports.map((report) => (
+              <Card key={report.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center shrink-0">
+                        <FileText className="w-6 h-6 text-red-500" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 text-lg">{report.report_title}</h3>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          <Badge variant="secondary" className="text-xs">
+                            {report.report_type}
+                          </Badge>
+                          <span className="text-xs text-gray-400 flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {formatDate(report.report_date)}
+                          </span>
+                          {report.has_summary && (
+                            <Badge className="bg-green-100 text-green-700 border-0 text-xs">
+                              <Sparkles className="w-3 h-3 mr-1" />
+                              AI Ready
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Link href={`/patient/report/${report.id}`}>
+                        <Button variant="outline" size="sm" className="gap-1">
+                          <Eye className="w-4 h-4" />
+                          View
+                        </Button>
+                      </Link>
+                      {!report.has_summary ? (
+                        <Button
+                          size="sm"
+                          onClick={() => generateSummary(report.id)}
+                          disabled={generatingId === report.id}
+                          className="bg-red-600 hover:bg-red-700 gap-1"
+                        >
+                          {generatingId === report.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-4 h-4" />
+                          )}
+                          {generatingId === report.id ? "Generating..." : "AI Summary"}
+                        </Button>
+                      ) : (
+                        <Button size="sm" disabled variant="outline" className="text-gray-400 gap-1">
+                          <CheckCircle className="w-4 h-4" />
+                          Done
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No reports found</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Emergency Contact */}
+        <div className="mt-8 p-4 bg-red-50 rounded-xl flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <Phone className="w-5 h-5 text-red-600" />
+            <div>
+              <p className="text-sm font-medium text-gray-700">24/7 Emergency Support</p>
+              <p className="text-xs text-gray-500">Immediate medical assistance available</p>
             </div>
-            <p style={{ fontSize: '16px', fontWeight: 'bold', color: '#1f2937' }}>+1 234 567 8900</p>
+          </div>
+          <a href="tel:03480639599">
+            <Button className="bg-red-600 hover:bg-red-700">
+              Call Emergency: 03480639599
+            </Button>
+          </a>
+        </div>
+
+        {/* Health Tip */}
+        <div className="mt-4 p-4 bg-blue-50 rounded-xl">
+          <div className="flex gap-3">
+            <Heart className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-gray-700">Health Tip</p>
+              <p className="text-xs text-gray-600">Regular health check-ups help detect potential issues early. Stay proactive about your health!</p>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Main Content */}
-      <div style={{ marginLeft: 0 }}>
-        {/* Header */}
-        <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 30 }}>
-          <div style={{ padding: '12px 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-              <button onClick={() => setIsMenuOpen(true)} style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer' }}>
-                <Menu size={20} />
-              </button>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                <div style={{ width: '28px', height: '28px', backgroundColor: '#dc2626', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ color: 'white', fontWeight: 'bold', fontSize: '12px' }}>SRS</span>
-                </div>
-                <span style={{ fontWeight: '600', fontSize: '14px' }}>Patient Portal</span>
-              </div>
-              
-              <button style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer', position: 'relative' }}>
-                <Bell size={18} />
-                <span style={{ position: 'absolute', top: '6px', right: '6px', width: '6px', height: '6px', backgroundColor: '#dc2626', borderRadius: '50%' }}></span>
-              </button>
-              <button onClick={() => router.push("/")} style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer' }}>
-                <LogOut size={18} />
-              </button>
-            </div>
-            
-            {/* Search Bar */}
-            <div style={{ marginTop: '12px' }}>
-              <div style={{ position: 'relative' }}>
-                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-                <input
-                  type="text"
-                  placeholder="Search reports..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px 8px 36px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', outline: 'none' }}
-                />
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content Area */}
-        <main style={{ padding: '16px' }}>
-          {/* Welcome Banner */}
-          <div style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)', borderRadius: '12px', padding: '16px', marginBottom: '20px', color: 'white' }}>
-            <div>
-              <p style={{ fontSize: '12px', opacity: 0.9, marginBottom: '4px' }}>Welcome back,</p>
-              <h1 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '4px' }}>{mockPatient.name.split(' ')[0]}</h1>
-              <p style={{ fontSize: '11px', opacity: 0.9 }}>ID: {mockPatient.patient_id}</p>
-            </div>
-            <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-              <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 12px', textAlign: 'center', flex: 1 }}>
-                <p style={{ fontSize: '11px', opacity: 0.9 }}>Reports</p>
-                <p style={{ fontSize: '20px', fontWeight: 'bold' }}>{stats.total}</p>
-              </div>
-              <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 12px', textAlign: 'center', flex: 1 }}>
-                <p style={{ fontSize: '11px', opacity: 0.9 }}>AI Ready</p>
-                <p style={{ fontSize: '20px', fontWeight: 'bold' }}>{stats.summarized}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Message Toast */}
-          {message && (
-            <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircle size={16} color="#059669" />
-              <p style={{ fontSize: '13px', color: '#065f46', flex: 1 }}>{message.text}</p>
-              <button onClick={() => setMessage(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>×</button>
-            </div>
-          )}
-
-          {/* Stats Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
-            <div style={{ backgroundColor: 'white', padding: '12px', borderRadius: '12px', textAlign: 'center' }}>
-              <div style={{ width: '32px', height: '32px', backgroundColor: '#eff6ff', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px' }}>
-                <Microscope size={16} color="#3b82f6" />
-              </div>
-              <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937' }}>{stats.total}</p>
-              <p style={{ fontSize: '11px', color: '#6b7280' }}>Total</p>
-            </div>
-            <div style={{ backgroundColor: 'white', padding: '12px', borderRadius: '12px', textAlign: 'center' }}>
-              <div style={{ width: '32px', height: '32px', backgroundColor: '#f0fdf4', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px' }}>
-                <Sparkles size={16} color="#22c55e" />
-              </div>
-              <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937' }}>{stats.summarized}</p>
-              <p style={{ fontSize: '11px', color: '#6b7280' }}>Summarized</p>
-            </div>
-            <div style={{ backgroundColor: 'white', padding: '12px', borderRadius: '12px', textAlign: 'center' }}>
-              <div style={{ width: '32px', height: '32px', backgroundColor: '#fefce8', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px' }}>
-                <Clock size={16} color="#eab308" />
-              </div>
-              <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937' }}>{stats.pending}</p>
-              <p style={{ fontSize: '11px', color: '#6b7280' }}>Pending</p>
-            </div>
-          </div>
-
-          {/* Filter Tabs */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
-            <button onClick={() => setSelectedFilter("all")} style={{ padding: '6px 16px', fontSize: '13px', fontWeight: '500', borderRadius: '20px', border: 'none', cursor: 'pointer', backgroundColor: selectedFilter === 'all' ? '#dc2626' : '#f3f4f6', color: selectedFilter === 'all' ? 'white' : '#6b7280' }}>All</button>
-            <button onClick={() => setSelectedFilter("summarized")} style={{ padding: '6px 16px', fontSize: '13px', fontWeight: '500', borderRadius: '20px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: selectedFilter === 'summarized' ? '#22c55e' : '#f3f4f6', color: selectedFilter === 'summarized' ? 'white' : '#6b7280' }}><Sparkles size={12} /> Summarized</button>
-            <button onClick={() => setSelectedFilter("pending")} style={{ padding: '6px 16px', fontSize: '13px', fontWeight: '500', borderRadius: '20px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: selectedFilter === 'pending' ? '#eab308' : '#f3f4f6', color: selectedFilter === 'pending' ? 'white' : '#6b7280' }}><Clock size={12} /> Pending</button>
-          </div>
-
-          {/* Reports List */}
-          {filteredReports.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {filteredReports.map((report) => (
-                <div key={report.id} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px' }}>
-                  <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{ width: '40px', height: '40px', backgroundColor: '#fee2e2', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <FileText size={20} color="#dc2626" />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', marginBottom: '4px' }}>{report.report_title}</h3>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '10px', backgroundColor: '#f3f4f6', padding: '2px 6px', borderRadius: '4px' }}>{report.report_type}</span>
-                        <span style={{ fontSize: '10px', color: '#6b7280' }}>{formatDate(report.report_date)}</span>
-                      </div>
-                      <p style={{ fontSize: '11px', color: '#9ca3af' }}>{report.doctor}</p>
-                    </div>
-                  </div>
-                  
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <Link href={`/patient/report/${report.id}`} style={{ flex: 1, textDecoration: 'none' }}>
-                      <button style={{ width: '100%', padding: '8px', fontSize: '12px', fontWeight: '500', backgroundColor: '#f3f4f6', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><Eye size={14} /> View</button>
-                    </Link>
-                    {!report.has_summary ? (
-                      <button onClick={() => generateSummary(report.id)} disabled={generatingId === report.id} style={{ flex: 1, padding: '8px', fontSize: '12px', fontWeight: '500', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                        {generatingId === report.id ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Sparkles size={14} />}
-                        {generatingId === report.id ? 'Loading...' : 'AI Summary'}
-                      </button>
-                    ) : (
-                      <button disabled style={{ flex: 1, padding: '8px', fontSize: '12px', fontWeight: '500', backgroundColor: '#f3f4f6', color: '#9ca3af', border: 'none', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><CheckCircle size={14} /> Summarized</button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '40px', backgroundColor: 'white', borderRadius: '12px' }}>
-              <FileText size={48} color="#d1d5db" style={{ margin: '0 auto 12px' }} />
-              <p style={{ color: '#6b7280' }}>No reports found</p>
-            </div>
-          )}
-
-          {/* Health Tip */}
-          <div style={{ marginTop: '20px', backgroundColor: '#eff6ff', padding: '12px', borderRadius: '12px', display: 'flex', gap: '10px' }}>
-            <Heart size={18} color="#3b82f6" style={{ marginTop: '2px' }} />
-            <div>
-              <p style={{ fontSize: '12px', fontWeight: '600', color: '#1f2937', marginBottom: '2px' }}>Health Tip</p>
-              <p style={{ fontSize: '11px', color: '#6b7280' }}>Regular check-ups help detect issues early. Stay healthy! 🏃‍♂️</p>
-            </div>
-          </div>
-        </main>
-      </div>
-
-      <style jsx>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+      </main>
     </div>
   );
 }

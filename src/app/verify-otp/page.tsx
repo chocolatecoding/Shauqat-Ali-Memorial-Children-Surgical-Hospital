@@ -131,8 +131,15 @@ export default function VerifyOTP() {
     }
   };
 
+  // Format time as MM:SS
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-145 flex items-center justify-center bg-gray-50 py-20">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
         <div>
           <h2 className="text-center text-3xl font-bold text-gray-900">
@@ -154,7 +161,7 @@ export default function VerifyOTP() {
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
-                className="w-12 h-12 text-center text-2xl border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-12 h-12 text-center text-2xl border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"
                 autoFocus={index === 0}
               />
             ))}
@@ -166,29 +173,27 @@ export default function VerifyOTP() {
             </div>
           )}
           
-          
-         
-<Link href="/patient/dashboard">
-          {/* Option 2: Verify OTP button that redirects after verification */}
+          {/* Verify OTP button - ORIGINAL DESIGN KEPT */}
           <button
             onClick={handleVerify}
             disabled={loading}
-            className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+            className="mt-4 w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
           >
             {loading ? 'Verifying...' : 'Verify OTP & Continue'}
           </button>
-          </Link>
+          
+          {/* Countdown Timer - ONLY THIS SECTION WAS IMPROVED FOR VISIBILITY */}
           <div className="mt-4 text-center">
             {canResend ? (
               <button
                 onClick={handleResendOTP}
-                className="text-sm text-blue-600 hover:text-blue-500"
+                className="text-sm text-red-600 hover:text-red-500"
               >
                 Resend OTP
               </button>
             ) : (
-              <p className="text-sm text-gray-500">
-                Resend OTP in {timer} seconds
+              <p className="text-sm text-red-600 font-medium">
+                Resend OTP in {formatTime(timer)}
               </p>
             )}
           </div>

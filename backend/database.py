@@ -1,14 +1,18 @@
 import mysql.connector
 from mysql.connector import Error
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Database:
     def __init__(self):
-        self.host = "localhost"
-        self.user = "root"
-        self.password = ""
-        self.database = "smart_report_system"
+        self.host = os.getenv('DB_HOST', 'localhost')
+        self.user = os.getenv('DB_USER', 'root')
+        self.password = os.getenv('DB_PASSWORD', '')
+        self.database = os.getenv('DB_NAME', 'smart_report_system')
         self.connection = None
-        
+    
     def connect(self):
         try:
             self.connection = mysql.connector.connect(
@@ -17,9 +21,10 @@ class Database:
                 password=self.password,
                 database=self.database
             )
+            print("✅ Database connected successfully")
             return self.connection
         except Error as e:
-            print(f"Database error: {e}")
+            print(f"❌ Database connection error: {e}")
             return None
     
     def execute_query(self, query, params=None):

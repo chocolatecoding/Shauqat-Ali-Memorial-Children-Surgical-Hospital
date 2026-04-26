@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Activity,
   Heart,
-  Microscope,
   Stethoscope,
   Briefcase,
   Baby,
@@ -18,11 +17,11 @@ import {
   Camera,
   Microscope as MicroscopeIcon,
   CheckCircle2,
-  ArrowRight,
   Star,
   Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 // Service categories data with prices
 const serviceCategories = [
@@ -112,7 +111,7 @@ export function Services() {
   const [activeTab, setActiveTab] = useState(0);
 
   return (
-    <section className="py-16 md:py-24 bg-linear-to-b from-white to-gray-50">
+    <section className="py-16 md:py-24">
       <div className="container mx-auto px-4 md:px-8 lg:px-16">
         {/* Section Header */}
         <motion.div
@@ -170,7 +169,7 @@ export function Services() {
                 className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100"
               >
                 {/* Category Header */}
-                <div className={`bg-gradient-to-r ${category.color} p-6 md:p-8 text-white`}>
+                <div className={`bg-linear-to-r ${category.color} p-6 md:p-8 text-white`}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 md:w-14 md:h-14 bg-white/20 rounded-2xl flex items-center justify-center">
@@ -234,10 +233,12 @@ export function Services() {
                         All prices include professional fees and basic reports
                       </p>
                     </div>
+                    <Link href={"/services"}>
                     <Button variant="outline" className="rounded-md text-sm py-6 px-5 border-red-600 text-red-600 hover:bg-red-50">
                       <Star className="w-4 h-4 mr-2" />
                       View All Services
                     </Button>
+                    </Link>
                   </div>
                 </div>
               </motion.div>

@@ -77,7 +77,7 @@ export function FAQ() {
   };
 
   return (
-    <section className="py-16 md:py-24 bg-linear-to-b from-gray-50 to-white">
+    <section className="py-16 md:py-24 bg-gray-50">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <motion.div

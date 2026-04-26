@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Play, FileText, Info } from "lucide-react";
 
-// Hero slides data
+// Hero slides data - SAME as before
 const slides = [
   {
     id: 1,
@@ -72,16 +72,18 @@ export function Hero() {
   };
 
   return (
-    <section className="relative w-full min-h-150 md:min-h-175 lg:h-screen max-h-225 overflow-hidden">
-      {/* Background Images */}
+    <section className="relative w-full lg:h-screen max-h-screen overflow-hidden pb-20">
+      {/* Background Images with fade animation */}
       {slides.map((slide, index) => (
-        <div
+        <motion.div
           key={slide.id}
-          className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-            currentSlide === index ? "opacity-100 z-0" : "opacity-0 z-0"
+          className={`absolute inset-0 ${
+            currentSlide === index ? "z-0" : "z-0"
           }`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: currentSlide === index ? 1 : 0 }}
+          transition={{ duration: 1, ease: "easeInOut" }}
         >
-          {/* Dark Overlay */}
           <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/60 to-black/40 z-10" />
           <Image
             src={slide.image}
@@ -93,17 +95,17 @@ export function Hero() {
             sizes="100vw"
             quality={90}
           />
-        </div>
+        </motion.div>
       ))}
 
-      {/* Bottom Gradient Overlay */}
+      {/* Bottom Gradient Overlay - SAME */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-linear-to-t from-black/60 to-transparent z-10" />
 
       {/* Content */}
       <div className="relative z-20 h-full flex items-center">
         <div className="container mx-auto px-5 md:px-8 lg:px-12 mt-16 md:mt-24 lg:mt-0">
           <div className="max-w-3xl lg:max-w-4xl">
-            {/* Hospital Badge */}
+            {/* Hospital Badge with fade animation */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -118,7 +120,7 @@ export function Hero() {
               </div>
             </motion.div>
 
-            {/* Animated Title */}
+            {/* Animated Title - SAME text, only animation added */}
             <div className="min-h-30 sm:min-h-35 md:min-h-45 lg:min-h-55">
               <AnimatePresence mode="wait">
                 <motion.h1
@@ -134,7 +136,7 @@ export function Hero() {
               </AnimatePresence>
             </div>
 
-            {/* Description */}
+            {/* Description - SAME text, only animation added */}
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -145,21 +147,21 @@ export function Hero() {
               cutting-edge technology and compassionate professionals dedicated to your well-being.
             </motion.p>
 
-            {/* CTA Buttons */}
+            {/* CTA Buttons - Full width on mobile */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="flex flex-wrap gap-3 sm:gap-4 md:gap-5 mt-6 md:mt-8"
+              className="flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-5 mt-6 md:mt-8"
             >
-              <Link href="/patient/login">
-                <Button className="bg-red-600 hover:bg-red-700 text-white px-5 py-5 sm:px-6 sm:py-5 md:px-7 md:py-6 text-sm sm:text-base font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 group border">
+              <Link href="/patient/login" className="w-full sm:w-auto">
+                <Button className="w-full bg-red-600 hover:bg-red-700 text-white px-5 py-5 sm:px-6 sm:py-5 md:px-7 md:py-6 text-sm sm:text-base font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 group border">
                   <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2 group-hover:rotate-12 transition-transform" />
                   View Report
                 </Button>
               </Link>
-              <Link href="/about">
-                <Button variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-red-600 px-5 py-5 sm:px-6 sm:py-5 md:px-7 md:py-6 text-sm sm:text-base font-semibold transition-all duration-300 hover:scale-105 group bg-transparent">
+              <Link href="/about" className="w-full sm:w-auto">
+                <Button variant="outline" className="w-full border-2 border-white text-white hover:bg-white hover:text-red-600 px-5 py-5 sm:px-6 sm:py-5 md:px-7 md:py-6 text-sm sm:text-base font-semibold transition-all duration-300 hover:scale-105 group bg-transparent">
                   <Info className="w-4 h-4 sm:w-5 sm:h-5 mr-2 group-hover:rotate-12 transition-transform" />
                   Learn About Us
                 </Button>
@@ -169,29 +171,35 @@ export function Hero() {
         </div>
       </div>
 
-      {/* Navigation Arrows - Hidden on mobile, visible on tablet+ */}
-      <button
+      {/* Navigation Arrows - SAME, only hover animation */}
+      <motion.button
         onClick={prevSlide}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
         className="hidden md:flex absolute left-4 lg:left-6 top-1/2 -translate-y-1/2 z-30 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-black/40 hover:bg-red-600 transition-all duration-300 text-white items-center justify-center backdrop-blur-sm group"
         aria-label="Previous slide"
       >
         <ChevronLeft className="w-5 h-5 lg:w-6 lg:h-6 group-hover:scale-110 transition-transform" />
-      </button>
+      </motion.button>
       
-      <button
+      <motion.button
         onClick={nextSlide}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
         className="hidden md:flex absolute right-4 lg:right-6 top-1/2 -translate-y-1/2 z-30 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-black/40 hover:bg-red-600 transition-all duration-300 text-white items-center justify-center backdrop-blur-sm group"
         aria-label="Next slide"
       >
         <ChevronRight className="w-5 h-5 lg:w-6 lg:h-6 group-hover:scale-110 transition-transform" />
-      </button>
+      </motion.button>
 
-      {/* Dots Indicator */}
+      {/* Dots Indicator - SAME, only animation added */}
       <div className="absolute bottom-4 md:bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-1.5 md:gap-2">
         {slides.map((_, index) => (
-          <button
+          <motion.button
             key={index}
             onClick={() => goToSlide(index)}
+            whileHover={{ scale: 1.2 }}
+            whileTap={{ scale: 0.9 }}
             className={`transition-all duration-300 rounded-full ${
               currentSlide === index
                 ? "w-6 md:w-8 h-1.5 md:h-2 bg-red-500"
@@ -202,9 +210,11 @@ export function Hero() {
         ))}
       </div>
 
-      {/* Auto-Play Control - Hidden on mobile */}
-      <button
+      {/* Auto-Play Control - SAME, only animation added */}
+      <motion.button
         onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
         className="hidden md:flex absolute bottom-4 md:bottom-6 lg:bottom-8 right-4 md:right-6 lg:right-8 z-30 w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-black/40 hover:bg-red-600 transition-all duration-300 text-white items-center justify-center backdrop-blur-sm"
         aria-label={isAutoPlaying ? "Pause slideshow" : "Play slideshow"}
       >
@@ -213,15 +223,23 @@ export function Hero() {
         ) : (
           <Play className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
         )}
-      </button>
+      </motion.button>
 
-      {/* Scroll Indicator - Hidden on mobile */}
-      <div className="hidden md:flex absolute bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 z-30 flex-col items-center gap-2 translate-y-12 opacity-0 animate-bounce">
+      {/* Scroll Indicator - SAME, only bounce animation */}
+      <motion.div
+        className="hidden md:flex absolute bottom-10 lg:bottom-15 left-1/2 -translate-x-1/2 z-30 flex-col items-center gap-2"
+        animate={{ y: [0, 10, 0] }}
+        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+      >
         <span className="text-white text-xs font-medium tracking-wider uppercase">Scroll</span>
         <div className="w-5 h-8 border-2 border-white/50 rounded-full flex justify-center">
-          <div className="w-1 h-2 bg-white rounded-full mt-2 animate-pulse" />
+          <motion.div
+            className="w-1 h-2 bg-white rounded-full mt-2"
+            animate={{ y: [0, 12, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          />
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

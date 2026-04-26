@@ -143,8 +143,20 @@ export default function PatientLoginPage() {
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
-      {/* Left Side - Brand Section */}
+      {/* Left Side - Brand Section with Animated Background Pattern */}
       <div className="relative flex-1 bg-linear-to-br from-red-600 to-red-800 flex items-center justify-center py-20 px-6 md:p-8 lg:p-12 overflow-hidden">
+        {/* Animated Background Pattern - SAME as staff login */}
+        <div className="absolute inset-0 opacity-5">
+          <div 
+            className="absolute inset-0 animate-spin-slow"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='white' d='M20,20 L80,20 L80,80 L20,80 Z'/%3E%3Ccircle cx='50' cy='50' r='10'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'repeat',
+              backgroundSize: '60px',
+            }}
+          />
+        </div>
+
         {/* Back Button */}
         <Link
           href="/"
@@ -250,17 +262,13 @@ export default function PatientLoginPage() {
                 </p>
               </div>
 
-            <Link href="/verify-otp">
               <button
                 type="submit"
                 disabled={isLoading}
                 className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
               >
-              
                 {isLoading ? "Sending OTP..." : "Send OTP"}
               </button>
-
-              </Link>
             </form>
           ) : (
             /* OTP Verification Form */
@@ -295,7 +303,7 @@ export default function PatientLoginPage() {
                       {timeLeft > 0 ? `${formatTime(timeLeft)} remaining` : "OTP expired"}
                     </span>
                   </div>
-                  
+                  <Link href={"/verify-otp"}>
                   <button
                     type="button"
                     onClick={resendOTP}
@@ -308,6 +316,7 @@ export default function PatientLoginPage() {
                   >
                     {isLoading ? "Sending..." : "Resend OTP"}
                   </button>
+                  </Link>
                 </div>
               </div>
 
@@ -324,7 +333,6 @@ export default function PatientLoginPage() {
               >
                 ← Back to Login
               </button>
-
 
               <button
                 type="submit"
@@ -348,7 +356,7 @@ export default function PatientLoginPage() {
         </div>
       </div>
 
-      {/* Custom Animations */}
+      {/* Custom Animations - Added spin-slow from staff login */}
       <style jsx>{`
         @keyframes fadeInUp {
           from {
@@ -372,6 +380,15 @@ export default function PatientLoginPage() {
           }
         }
 
+        @keyframes spin-slow {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           25% { transform: translateX(-5px); }
@@ -384,6 +401,10 @@ export default function PatientLoginPage() {
 
         .animate-fade-in-right {
           animation: fadeInRight 0.8s ease-out;
+        }
+
+        .animate-spin-slow {
+          animation: spin-slow 60s linear infinite;
         }
 
         .animate-shake {
