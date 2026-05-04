@@ -8,6 +8,8 @@ import random
 from werkzeug.utils import secure_filename
 from database import Database
 from ai_services import AIServices
+from email_service import EmailService
+from settings import SettingsManager
 import PyPDF2
 from PIL import Image
 import pytesseract
@@ -19,6 +21,8 @@ app = Flask(__name__)
 CORS(app)
 
 db = Database()
+email_service = EmailService()
+settings_manager = SettingsManager()  # ← CREATE INSTANCE
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -47,7 +51,7 @@ def generate_jwt(user_id, user_type):
     payload = {
         'user_id': user_id,
         'user_type': user_type,
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+        'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
     }
     return jwt.encode(payload, JWT_SECRET, algorithm='HS256')
 
@@ -58,10 +62,8 @@ def verify_jwt(token):
         return None
 
 def extract_text_from_file(filepath):
-    """Extract text from PDF or Image file"""
     ext = filepath.lower().split('.')[-1]
     text = ""
-    
     try:
         if ext == 'pdf':
             with open(filepath, 'rb') as file:
@@ -73,16 +75,7 @@ def extract_text_from_file(filepath):
             text = pytesseract.image_to_string(image)
     except Exception as e:
         print(f"Text extraction error: {e}")
-    
     return text
-
-def send_email(to_email, subject, body):
-    """Send email (simplified - prints to console)"""
-    print(f"\n📧 EMAIL SENT:")
-    print(f"   To: {to_email}")
-    print(f"   Subject: {subject}")
-    print(f"   Body: {body}\n")
-    return True
 
 # ==================== STAFF API ROUTES ====================
 
@@ -109,11 +102,31 @@ def staff_login():
 
 @app.route('/api/staff/patients', methods=['GET'])
 def get_patients():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    token = auth_header.replace('Bearer ', '')
+    payload = verify_jwt(token)
+    
+    if not payload or payload.get('user_type') != 'staff':
+        return jsonify({'error': 'Unauthorized'}), 401
+    
     patients = db.fetch_all("SELECT * FROM users WHERE user_type='patient' ORDER BY created_at DESC")
     return jsonify({'patients': patients})
 
 @app.route('/api/staff/create-patient', methods=['POST'])
 def create_patient():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    token = auth_header.replace('Bearer ', '')
+    payload = verify_jwt(token)
+    
+    if not payload or payload.get('user_type') != 'staff':
+        return jsonify({'error': 'Unauthorized'}), 401
+    
     data = request.json
     name = data.get('name')
     email = data.get('email')
@@ -124,14 +137,23 @@ def create_patient():
             "INSERT INTO users (email, user_type, patient_id, name) VALUES (%s, 'patient', %s, %s)",
             (email, patient_id, name)
         )
-        send_email(email, "Your Patient ID", f"Dear {name},\n\nYour Patient ID is: {patient_id}\n\nYou can now login to view your reports.")
-        
+        email_service.send_patient_id(email, name, patient_id)
         return jsonify({'success': True, 'patient_id': patient_id})
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
 @app.route('/api/staff/upload-report', methods=['POST'])
 def upload_report():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    token = auth_header.replace('Bearer ', '')
+    payload = verify_jwt(token)
+    
+    if not payload or payload.get('user_type') != 'staff':
+        return jsonify({'error': 'Unauthorized'}), 401
+    
     patient_id = request.form.get('patient_id')
     report_title = request.form.get('report_title')
     file = request.files.get('report_file')
@@ -151,30 +173,117 @@ def upload_report():
     
     patient = db.fetch_one("SELECT email, name FROM users WHERE patient_id=%s", (patient_id,))
     if patient:
-        send_email(patient['email'], "New Report Uploaded", f"Dear {patient['name']},\n\nA new report '{report_title}' has been uploaded to your account.")
+        email_service.send_report_uploaded(patient['email'], patient['name'], report_title)
+    
+    return jsonify({'success': True})
+
+@app.route('/api/staff/delete-report/<int:report_id>', methods=['DELETE'])
+def delete_report(report_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    token = auth_header.replace('Bearer ', '')
+    payload = verify_jwt(token)
+    
+    if not payload or payload.get('user_type') != 'staff':
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    report = db.fetch_one("SELECT report_file_path FROM reports WHERE id=%s", (report_id,))
+    if report and report['report_file_path']:
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], report['report_file_path'])
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    
+    db.execute_query("DELETE FROM ai_summaries WHERE report_id=%s", (report_id,))
+    db.execute_query("DELETE FROM reports WHERE id=%s", (report_id,))
     
     return jsonify({'success': True})
 
 @app.route('/api/staff/delete-patient/<patient_id>', methods=['DELETE'])
 def delete_patient(patient_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    token = auth_header.replace('Bearer ', '')
+    payload = verify_jwt(token)
+    
+    if not payload or payload.get('user_type') != 'staff':
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    reports = db.fetch_all("SELECT report_file_path FROM reports WHERE patient_id=%s", (patient_id,))
+    for report in reports:
+        if report['report_file_path']:
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], report['report_file_path'])
+            if os.path.exists(filepath):
+                os.remove(filepath)
+    
     db.execute_query("DELETE FROM reports WHERE patient_id=%s", (patient_id,))
     db.execute_query("DELETE FROM users WHERE patient_id=%s", (patient_id,))
     return jsonify({'success': True})
 
+@app.route('/api/staff/patient-reports/<patient_id>', methods=['GET'])
+def get_patient_reports(patient_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    token = auth_header.replace('Bearer ', '')
+    payload = verify_jwt(token)
+    
+    if not payload or payload.get('user_type') != 'staff':
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    reports = db.fetch_all(
+        "SELECT * FROM reports WHERE patient_id=%s ORDER BY upload_date DESC",
+        (patient_id,)
+    )
+    return jsonify({'reports': reports})
+
+# ==================== SETTINGS API ROUTES ====================
+
 @app.route('/api/staff/settings', methods=['GET'])
-def get_settings():
-    settings = db.fetch_all("SELECT setting_key, setting_value FROM settings")
-    return jsonify({row['setting_key']: row['setting_value'] for row in settings})
+def get_staff_settings():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    token = auth_header.replace('Bearer ', '')
+    payload = verify_jwt(token)
+    
+    if not payload or payload.get('user_type') != 'staff':
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    settings = settings_manager.get_all_settings()  # ← USE INSTANCE
+    return jsonify(settings)
 
 @app.route('/api/staff/settings', methods=['POST'])
-def update_settings():
+def update_staff_settings():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    token = auth_header.replace('Bearer ', '')
+    payload = verify_jwt(token)
+    
+    if not payload or payload.get('user_type') != 'staff':
+        return jsonify({'error': 'Unauthorized'}), 401
+    
     data = request.json
     for key, value in data.items():
-        db.execute_query(
-            "UPDATE settings SET setting_value=%s WHERE setting_key=%s",
-            (str(value).lower(), key)
-        )
+        settings_manager.update_setting(key, 'true' if value else 'false')  # ← USE INSTANCE
+    
     return jsonify({'success': True})
+
+@app.route('/api/patient/settings', methods=['GET'])
+def get_patient_settings():
+    """Get settings for patient view"""
+    settings = settings_manager.get_all_settings()  # ← USE INSTANCE
+    return jsonify({
+        'ai_summary_enabled': settings.get('ai_summary_enabled', 'true') == 'true',
+        'chatbot_enabled': settings.get('chatbot_enabled', 'true') == 'true'
+    })
 
 # ==================== PATIENT API ROUTES ====================
 
@@ -196,7 +305,7 @@ def patient_login():
             "INSERT INTO otp_codes (email, otp_code, expires_at) VALUES (%s, %s, %s)",
             (email, otp, expires_at)
         )
-        send_email(email, "Your Login OTP", f"Your OTP code is: {otp}\n\nThis code expires in 10 minutes.")
+        email_service.send_otp(email, otp)
         return jsonify({'success': True, 'temp_token': generate_jwt(user['id'], 'temp')})
     
     return jsonify({'error': 'Invalid credentials'}), 401
@@ -244,7 +353,7 @@ def resend_otp():
             "INSERT INTO otp_codes (email, otp_code, expires_at) VALUES (%s, %s, %s)",
             (user['email'], otp, expires_at)
         )
-        send_email(user['email'], "Your Login OTP (Resent)", f"Your new OTP code is: {otp}\n\nThis code expires in 10 minutes.")
+        email_service.send_otp(user['email'], otp)
         return jsonify({'success': True})
     
     return jsonify({'error': 'Failed to resend OTP'}), 400
@@ -288,6 +397,16 @@ def get_report(report_id):
 
 @app.route('/api/patient/generate-summary/<int:report_id>', methods=['POST'])
 def generate_summary(report_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    token = auth_header.replace('Bearer ', '')
+    payload = verify_jwt(token)
+    
+    if not payload or payload.get('user_type') != 'patient':
+        return jsonify({'error': 'Unauthorized'}), 401
+    
     existing = db.fetch_one("SELECT id FROM ai_summaries WHERE report_id=%s", (report_id,))
     if existing:
         return jsonify({'error': 'Summary already exists'}), 400
@@ -314,6 +433,16 @@ def generate_summary(report_id):
 
 @app.route('/api/patient/chatbot', methods=['POST'])
 def chatbot():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    token = auth_header.replace('Bearer ', '')
+    payload = verify_jwt(token)
+    
+    if not payload or payload.get('user_type') != 'patient':
+        return jsonify({'error': 'Unauthorized'}), 401
+    
     data = request.json
     question = data.get('question')
     report_id = data.get('report_id')
@@ -339,6 +468,7 @@ def serve_audio(filename):
 # ==================== MAIN ====================
 
 if __name__ == '__main__':
+    import datetime
     db.connect()
     print("=" * 50)
     print("🚀 SMART REPORT SYSTEM BACKEND")

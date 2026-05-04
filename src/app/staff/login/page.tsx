@@ -2,11 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Mail, Lock, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 export default function StaffLoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -17,25 +15,35 @@ export default function StaffLoginPage() {
     setIsLoading(true);
     setError("");
 
-    // Simulate API call - Replace with actual API
-    setTimeout(() => {
-      if (email === "staff@hospital.com" && password === "password") {
-        // Store token in localStorage (for authentication)
-        localStorage.setItem("staffToken", "dummy-token");
-        localStorage.setItem("userName", "Staff");
-        router.push("/staff/dashboard");
+    try {
+      const response = await fetch("http://localhost:5000/api/staff/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        // Use window.location.href for hard redirect
+        window.location.href = "/staff/dashboard";
       } else {
-        setError("Invalid email or password. Please try again.");
+        setError(data.error || "Invalid email or password. Please try again.");
       }
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Cannot connect to server. Make sure backend is running on port 5000");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       {/* Left Side - Brand Section */}
       <div className="relative flex-1 bg-linear-to-br from-red-600 to-red-800 flex items-center justify-center py-16 p-6 md:p-8 lg:p-12 overflow-hidden">
-        {/* Animated Background Pattern */}
         <div className="absolute inset-0 opacity-5">
           <div 
             className="absolute inset-0 animate-spin-slow"
@@ -47,7 +55,6 @@ export default function StaffLoginPage() {
           />
         </div>
 
-        {/* Back Button */}
         <Link
           href="/"
           className="absolute top-5 left-5 md:top-8 md:left-8 flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 bg-white/20 backdrop-blur-md rounded-full text-white text-sm font-medium hover:bg-white/30 transition-all hover:-translate-x-1 z-10"
@@ -56,7 +63,6 @@ export default function StaffLoginPage() {
           Back to Home
         </Link>
 
-        {/* Brand Content */}
         <div className="relative z-10 max-w-md w-full animate-fade-in-up">
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-white mb-3 text-left">
             Staff Portal
@@ -111,7 +117,7 @@ export default function StaffLoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="staff@hospital.com"
+                  placeholder="Enter Hospital Email"
                   className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:ring-4 focus:ring-red-100 transition-all outline-none text-gray-800"
                   required
                 />
@@ -128,7 +134,7 @@ export default function StaffLoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="Enter Password"
                   className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:ring-4 focus:ring-red-100 transition-all outline-none text-gray-800"
                   required
                 />
@@ -144,11 +150,10 @@ export default function StaffLoginPage() {
             </button>
           </form>
 
-          {/* Demo credentials hint */}
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <p>Demo Credentials:</p>
-            <p className="text-xs">Email: staff@hospital.com</p>
-            <p className="text-xs">Password: password</p>
+          <div className="mt-6 text-center">
+            <Link href="/" className="text-sm text-gray-500 hover:text-red-600">
+              ← Back to Home
+            </Link>
           </div>
         </div>
       </div>
@@ -164,7 +169,6 @@ export default function StaffLoginPage() {
             transform: translateY(0);
           }
         }
-
         @keyframes fadeInRight {
           from {
             opacity: 0;
@@ -175,7 +179,6 @@ export default function StaffLoginPage() {
             transform: translateX(0);
           }
         }
-
         @keyframes spin-slow {
           from {
             transform: rotate(0deg);
@@ -184,28 +187,15 @@ export default function StaffLoginPage() {
             transform: rotate(360deg);
           }
         }
-
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           25% { transform: translateX(-5px); }
           75% { transform: translateX(5px); }
         }
-
-        .animate-fade-in-up {
-          animation: fadeInUp 0.8s ease-out;
-        }
-
-        .animate-fade-in-right {
-          animation: fadeInRight 0.8s ease-out;
-        }
-
-        .animate-spin-slow {
-          animation: spin-slow 60s linear infinite;
-        }
-
-        .animate-shake {
-          animation: shake 0.5s ease;
-        }
+        .animate-fade-in-up { animation: fadeInUp 0.8s ease-out; }
+        .animate-fade-in-right { animation: fadeInRight 0.8s ease-out; }
+        .animate-spin-slow { animation: spin-slow 60s linear infinite; }
+        .animate-shake { animation: shake 0.5s ease; }
       `}</style>
     </div>
   );

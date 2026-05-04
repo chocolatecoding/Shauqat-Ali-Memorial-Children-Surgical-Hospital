@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Mail, User, Lock, ArrowLeft, CheckCircle2, Shield, Headphones, FileText, Key, Clock, AlertCircle } from "lucide-react";
+import { Mail, User, ArrowLeft, CheckCircle2, AlertCircle, Key, Clock } from "lucide-react";
+
+const API_BASE = "http://localhost:5000/api";
 
 export default function PatientLoginPage() {
   const router = useRouter();
@@ -13,8 +14,6 @@ export default function PatientLoginPage() {
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  
-  // OTP States
   const [showOtpField, setShowOtpField] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [canResend, setCanResend] = useState(false);
@@ -30,7 +29,7 @@ export default function PatientLoginPage() {
     }
   }, [timeLeft]);
 
-  // Send OTP
+  // Send OTP - Call Flask Backend
   const sendOTP = async () => {
     if (!email || !patientId) {
       setError("Please enter both email and Patient ID");
@@ -41,27 +40,30 @@ export default function PatientLoginPage() {
     setError("");
 
     try {
-      // API call to send OTP
-      const response = await fetch("/api/send-otp", {
+      // Call Flask backend API
+      const response = await fetch(`${API_BASE}/patient/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, patientId }),
+        body: JSON.stringify({ email, patient_id: patientId }),
       });
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (data.success) {
+        // Store temp token for OTP verification
+        sessionStorage.setItem("tempEmail", email);
+        sessionStorage.setItem("tempToken", data.temp_token);
         setShowOtpField(true);
         setTimeLeft(60);
         setCanResend(false);
         setError("");
-        // Clear any existing OTP input
         setOtp("");
       } else {
-        setError(data.message || "Failed to send OTP");
+        setError(data.error || "Invalid credentials. Please check your email and Patient ID.");
       }
     } catch (error) {
-      setError("Network error. Please try again.");
+      console.error("Send OTP error:", error);
+      setError("Network error. Make sure backend is running on port 5000");
     } finally {
       setIsLoading(false);
     }
@@ -71,24 +73,33 @@ export default function PatientLoginPage() {
   const resendOTP = async () => {
     if (!canResend) return;
     
+    const tempToken = sessionStorage.getItem("tempToken");
+    if (!tempToken) {
+      setError("Session expired. Please login again.");
+      setShowOtpField(false);
+      return;
+    }
+
     setIsLoading(true);
     setError("");
 
     try {
-      const response = await fetch("/api/send-otp", {
+      const response = await fetch(`${API_BASE}/patient/resend-otp`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, patientId, resend: true }),
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${tempToken}`
+        },
       });
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (data.success) {
         setTimeLeft(60);
         setCanResend(false);
         setError("");
       } else {
-        setError(data.message || "Failed to resend OTP");
+        setError("Failed to resend OTP. Please try again.");
       }
     } catch (error) {
       setError("Network error. Please try again.");
@@ -97,7 +108,7 @@ export default function PatientLoginPage() {
     }
   };
 
-  // Verify OTP
+  // Verify OTP - Call Flask Backend
   const verifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -106,26 +117,34 @@ export default function PatientLoginPage() {
       return;
     }
 
+    const tempEmail = sessionStorage.getItem("tempEmail");
+    if (!tempEmail) {
+      setError("Session expired. Please login again.");
+      setShowOtpField(false);
+      return;
+    }
+
     setIsVerifying(true);
     setError("");
 
     try {
-      const response = await fetch("/api/verify-otp", {
+      const response = await fetch(`${API_BASE}/patient/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, patientId, otp }),
+        body: JSON.stringify({ otp, email: tempEmail }),
       });
 
       const data = await response.json();
 
-      if (response.ok) {
-        // Store token/session
-        localStorage.setItem("userToken", data.token);
-        localStorage.setItem("userEmail", email);
-        // Redirect to dashboard
+      if (data.success) {
+        // Store token and user data
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        sessionStorage.removeItem("tempEmail");
+        sessionStorage.removeItem("tempToken");
         router.push("/patient/dashboard");
       } else {
-        setError(data.message || "Invalid OTP. Please try again.");
+        setError(data.error || "Invalid OTP. Please try again.");
       }
     } catch (error) {
       setError("Network error. Please try again.");
@@ -134,7 +153,6 @@ export default function PatientLoginPage() {
     }
   };
 
-  // Format time remaining
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -143,9 +161,8 @@ export default function PatientLoginPage() {
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
-      {/* Left Side - Brand Section with Animated Background Pattern */}
+      {/* Left Side - Brand Section */}
       <div className="relative flex-1 bg-linear-to-br from-red-600 to-red-800 flex items-center justify-center py-20 px-6 md:p-8 lg:p-12 overflow-hidden">
-        {/* Animated Background Pattern - SAME as staff login */}
         <div className="absolute inset-0 opacity-5">
           <div 
             className="absolute inset-0 animate-spin-slow"
@@ -157,7 +174,6 @@ export default function PatientLoginPage() {
           />
         </div>
 
-        {/* Back Button */}
         <Link
           href="/"
           className="absolute top-5 left-5 md:top-8 md:left-8 flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 bg-white/20 backdrop-blur-md rounded-full text-white text-sm font-medium hover:bg-white/30 transition-all hover:-translate-x-1 z-10"
@@ -166,7 +182,6 @@ export default function PatientLoginPage() {
           Back to Home
         </Link>
 
-        {/* Brand Content */}
         <div className="relative z-10 max-w-md w-full animate-fade-in-up">
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-white mb-3 text-left">
             Welcome Back!
@@ -176,7 +191,6 @@ export default function PatientLoginPage() {
             Access your health information securely and effortlessly.
           </p>
 
-          {/* Features */}
           <div className="space-y-3 pt-4 border-t border-white/20">
             <div className="flex items-center gap-3 text-white/95 text-sm">
               <CheckCircle2 className="w-5 h-5" />
@@ -197,20 +211,18 @@ export default function PatientLoginPage() {
       {/* Right Side - Form Section */}
       <div className="flex-1 flex items-center justify-center bg-white p-6 md:p-8 lg:p-12">
         <div className="w-full max-w-md animate-fade-in-right">
-          {/* Form Header */}
           <div className="text-center mb-8">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
               {showOtpField ? "Verify OTP" : "Patient Login"}
             </h2>
             <p className="text-gray-500 text-sm">
               {showOtpField 
-                ? `Enter the 6-digit code sent to ${email}`
+                ? `Enter the 6-digit code sent to ${sessionStorage.getItem("tempEmail") || email}`
                 : "Sign in to continue to your dashboard"
               }
             </p>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="mb-6 p-3 bg-red-50 border-l-4 border-red-500 rounded-lg animate-shake">
               <div className="flex items-center gap-2">
@@ -220,7 +232,6 @@ export default function PatientLoginPage() {
             </div>
           )}
 
-          {/* Login Form */}
           {!showOtpField ? (
             <form onSubmit={(e) => { e.preventDefault(); sendOTP(); }} className="space-y-5">
               <div>
@@ -271,7 +282,6 @@ export default function PatientLoginPage() {
               </button>
             </form>
           ) : (
-            /* OTP Verification Form */
             <form onSubmit={verifyOTP} className="space-y-5">
               <div>
                 <label className="block text-gray-700 font-semibold text-sm mb-2">
@@ -295,7 +305,6 @@ export default function PatientLoginPage() {
                   />
                 </div>
                 
-                {/* Timer and Resend */}
                 <div className="mt-3 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className={`w-4 h-4 ${timeLeft > 0 ? "text-red-500" : "text-gray-400"}`} />
@@ -303,7 +312,6 @@ export default function PatientLoginPage() {
                       {timeLeft > 0 ? `${formatTime(timeLeft)} remaining` : "OTP expired"}
                     </span>
                   </div>
-                  <Link href={"/verify-otp"}>
                   <button
                     type="button"
                     onClick={resendOTP}
@@ -316,11 +324,9 @@ export default function PatientLoginPage() {
                   >
                     {isLoading ? "Sending..." : "Resend OTP"}
                   </button>
-                  </Link>
                 </div>
               </div>
 
-              {/* Back to login button */}
               <button
                 type="button"
                 onClick={() => {
@@ -328,6 +334,8 @@ export default function PatientLoginPage() {
                   setOtp("");
                   setTimeLeft(0);
                   setError("");
+                  sessionStorage.removeItem("tempEmail");
+                  sessionStorage.removeItem("tempToken");
                 }}
                 className="w-full text-gray-500 text-sm py-2 hover:text-gray-700 transition-colors"
               >
@@ -344,7 +352,6 @@ export default function PatientLoginPage() {
             </form>
           )}
 
-          {/* Help text */}
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-400">
               Having trouble? Contact support at{" "}
@@ -356,60 +363,28 @@ export default function PatientLoginPage() {
         </div>
       </div>
 
-      {/* Custom Animations - Added spin-slow from staff login */}
       <style jsx>{`
         @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-
         @keyframes fadeInRight {
-          from {
-            opacity: 0;
-            transform: translateX(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
+          from { opacity: 0; transform: translateX(30px); }
+          to { opacity: 1; transform: translateX(0); }
         }
-
         @keyframes spin-slow {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
-
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           25% { transform: translateX(-5px); }
           75% { transform: translateX(5px); }
         }
-
-        .animate-fade-in-up {
-          animation: fadeInUp 0.8s ease-out;
-        }
-
-        .animate-fade-in-right {
-          animation: fadeInRight 0.8s ease-out;
-        }
-
-        .animate-spin-slow {
-          animation: spin-slow 60s linear infinite;
-        }
-
-        .animate-shake {
-          animation: shake 0.5s ease;
-        }
+        .animate-fade-in-up { animation: fadeInUp 0.8s ease-out; }
+        .animate-fade-in-right { animation: fadeInRight 0.8s ease-out; }
+        .animate-spin-slow { animation: spin-slow 60s linear infinite; }
+        .animate-shake { animation: shake 0.5s ease; }
       `}</style>
     </div>
   );
